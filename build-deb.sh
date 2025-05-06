@@ -28,15 +28,18 @@ chmod +x keep-it-playr-launcher.sh
 cp keep-it-playr-launcher.sh "${BUILD}/usr/local/bin/keep-it-playr"
 
 # Desktop entry
-cat > "${BUILD}/usr/share/applications/keep-it-playr.desktop" << 'EOF'
-[Desktop Entry]
-Name=KEEP-IT PLAYR
-Exec=keep-it-playr
-Icon=/usr/share/keep-it-playr/art/officiallogo.png
-Type=Application
-Categories=Audio;Player;
-Terminal=false
+# ✅ CORRECT: unquoted EOF → variables expand
+cat > "${BUILD}/DEBIAN/control" << EOF
+Package: ${PKG}
+Version: ${VERSION}
+Section: sound
+Priority: optional
+Architecture: all
+Depends: python3, python3-tk, python3-pil, mpv, yt-dlp, python3-requests
+Maintainer: cosas.malas
+Description: KEEP-IT PLAYR — a CustomTkinter YouTube/Audio player
 EOF
+
 
 # Control file
 cat > "${BUILD}/DEBIAN/control" << 'EOF'
