@@ -1,0 +1,16 @@
+cat > .gitignore << 'EOF'
+# Byte-compiled / caches
+__pycache__/
+*.py[cod]
+ 
+# Virtualenv
+.venv/
+ 
+# Build artifacts & packages
+*.deb
+keep-it-playr_*/
+build-deb.sh
+ 
+# OS junk
+.DS_Store
+EOF
