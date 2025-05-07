@@ -31,12 +31,13 @@ cp keep-it-playr-launcher.sh "${BUILD}/usr/local/bin/keep-it-playr"
 cat > "${BUILD}/usr/share/applications/keep-it-playr.desktop" << 'DESKTOP'
 [Desktop Entry]
 Name=KEEP-IT PLAYR
-Exec=keep-it-playr
+Exec=/usr/local/bin/keep-it-playr
 Icon=/usr/share/keep-it-playr/art/officiallogo.png
 Type=Application
 Categories=Audio;Player;
 Terminal=false
 DESKTOP
+
 
 # 7️⃣ Write DEBIAN/control (variables WILL expand because we’re using << EOF)
 cat > "${BUILD}/DEBIAN/control" << EOF
