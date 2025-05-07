@@ -1,6 +1,13 @@
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "vendor"))
 
+# Drag-and-Drop support via tkinterdnd2
+try:
+    from tkinterdnd2 import TkinterDnD, DND_FILES
+except ImportError:
+    print("❌ Missing tkinterdnd2. Run: pip3 install tkinterdnd2")
+    sys.exit(1)
+
 import threading
 import glob
 import re
@@ -131,15 +138,11 @@ class FOGRPlayer(TkinterDnD.Tk):
         self.bind("<Up>",    lambda e: self.change_volume(self.volume_level+5))
         self.bind("<Down>",  lambda e: self.change_volume(self.volume_level-5))
 
-
-    # --- Graceful on-close handler ---
     def on_close(self):
         if self.current_process and self.current_process.poll() is None:
             self.current_process.terminate()
         self.destroy()
 
-
-    # --- Drag & Drop Handler ---
     def handle_drop(self, event):
         for fp in self.tk.splitlist(event.data):
             if fp.lower().endswith((".mp3", ".m4a")):
@@ -149,8 +152,6 @@ class FOGRPlayer(TkinterDnD.Tk):
                     print("❌ Drag-drop error:", e)
         self.show_library()
 
-
-    # --- YouTube Playback & Download ---
     def play_url(self):
         url = self.url_var.get().strip()
         if not url:
@@ -174,7 +175,6 @@ class FOGRPlayer(TkinterDnD.Tk):
                 print("❌ play_url error:", e)
         threading.Thread(target=runner, daemon=True).start()
 
-
     def download_audio(self):
         url = self.url_var.get().strip()
         if not url:
@@ -195,13 +195,9 @@ class FOGRPlayer(TkinterDnD.Tk):
                 print("❌ download_audio error:", e)
         threading.Thread(target=runner, daemon=True).start()
 
-
-    # --- Utility: get all playlist names ---
     def get_playlists(self):
         return sorted(f[:-9] for f in os.listdir(PLAYLISTS_DIR) if f.endswith(".playlist"))
 
-
-    # --- Sidebar with Navigation ---
     def build_sidebar(self):
         sb = ctk.CTkFrame(self, width=180, corner_radius=0, fg_color="#111")
         sb.pack(side="left", fill="y")
@@ -223,7 +219,6 @@ class FOGRPlayer(TkinterDnD.Tk):
             )
             btn.pack(fill="x", pady=5, padx=10)
 
-        # Theme toggle
         mode = ctk.get_appearance_mode().lower()
         ico  = self.icon_sun if mode == "dark" else self.icon_moon
         self.theme_btn = ctk.CTkButton(
@@ -233,8 +228,6 @@ class FOGRPlayer(TkinterDnD.Tk):
         )
         self.theme_btn.pack(fill="x", pady=20, padx=10)
 
-
-    # --- Main Content Area ---
     def build_main_area(self):
         self.main_frame = ctk.CTkFrame(self, fg_color="#1e1e1e")
         self.main_frame.pack(side="top", fill="both", expand=True)
@@ -250,23 +243,17 @@ class FOGRPlayer(TkinterDnD.Tk):
         )
         self.content_frame.pack(fill="both", expand=True, padx=20, pady=10)
 
-
-    # --- Playback Bar at Bottom --- (unchanged) ---
     def build_playback_bar(self):
         # ... your existing playback bar code ...
-        pass  # (omitted here for brevity; keep your existing code)
+        pass
 
-
-    # --- Context Menu for Library Songs ---
     def show_song_context_menu(self, event, song):
         menu = Menu(self, tearoff=0)
         menu.add_command(label="Play", command=lambda: self.play_song(song))
         menu.add_command(label="Rename", command=lambda: self.rename_song(song))
 
-        # Add / Remove from playlists
         submenu = Menu(menu, tearoff=0)
         for pl in self.get_playlists():
-            # Check if song is already in playlist
             path = os.path.join(PLAYLISTS_DIR, f"{pl}.playlist")
             in_pl = os.path.exists(path) and song+"\n" in open(path).read().splitlines(True)
             if in_pl:
@@ -278,7 +265,6 @@ class FOGRPlayer(TkinterDnD.Tk):
         menu.add_cascade(label="Playlists", menu=submenu)
         menu.tk_popup(event.x_root, event.y_root)
 
-
     def rename_song(self, song):
         old = os.path.join(LIBRARY_DIR, song)
         base, ext = os.path.splitext(song)
@@ -288,12 +274,10 @@ class FOGRPlayer(TkinterDnD.Tk):
             new = os.path.join(LIBRARY_DIR, new_name)
             try:
                 os.rename(old, new)
-                # update favorites
                 if song in self.favorites:
                     self.favorites.remove(song)
                     self.favorites.add(new_name)
                     self.save_favorites()
-                # update playlists
                 for pl in self.get_playlists():
                     path = os.path.join(PLAYLISTS_DIR, f"{pl}.playlist")
                     lines = open(path).read().splitlines()
@@ -304,13 +288,11 @@ class FOGRPlayer(TkinterDnD.Tk):
             except Exception as e:
                 messagebox.showerror("Rename Error", str(e))
 
-
     def add_to_playlist(self, song, playlist):
         path = os.path.join(PLAYLISTS_DIR, f"{playlist}.playlist")
         with open(path, "a") as f:
             f.write(song + "\n")
         messagebox.showinfo("Playlist", f"Added '{song}' to playlist '{playlist}'.")
-
 
     def remove_from_playlist(self, song, playlist):
         path = os.path.join(PLAYLISTS_DIR, f"{playlist}.playlist")
@@ -320,18 +302,13 @@ class FOGRPlayer(TkinterDnD.Tk):
                 if ln.strip() != song:
                     f.write(ln + "\n")
         messagebox.showinfo("Playlist", f"Removed '{song}' from playlist '{playlist}'.")
-        # if currently viewing that playlist, refresh
         if self.title_label.cget("text")==playlist:
             self.load_playlist(playlist)
 
-
-    # --- Library Tab UI ---
     def show_library(self):
         self.title_label.configure(text="Library")
         for w in self.content_frame.winfo_children():
             w.destroy()
-
-        # URL entry + buttons (unchanged) …
 
         search = ctk.CTkEntry(
             self.content_frame,
@@ -365,21 +342,16 @@ class FOGRPlayer(TkinterDnD.Tk):
             btn.bind("<Button-3>", lambda e, x=fn: self.show_song_context_menu(e, x))
             self.lib_buttons.append((btn, (a+" "+t).lower()))
 
-
     def filter_library(self):
         term = self.search_var_lib.get().lower()
         for btn, txt in self.lib_buttons:
             btn.pack() if term in txt else btn.pack_forget()
 
-
-    # --- Favorites Tab UI --- (unchanged except remove favorites uses remove_favorite) …
-    # --- Playlists Tab UI ---
     def show_playlists(self):
         self.title_label.configure(text="Playlists")
         for w in self.content_frame.winfo_children():
             w.destroy()
 
-        # Dropdown to select existing playlist
         pls = self.get_playlists()
         self.playlist_var.set("Select playlist")
         dropdown = CTkOptionMenu(
@@ -391,7 +363,6 @@ class FOGRPlayer(TkinterDnD.Tk):
         )
         dropdown.pack(pady=(10,5))
 
-        # New playlist entry
         entry = ctk.CTkEntry(
             self.content_frame, placeholder_text="New Playlist Name",
             width=400, font=self.button_font
@@ -411,17 +382,16 @@ class FOGRPlayer(TkinterDnD.Tk):
             font=self.button_font, command=save_new, width=200
         ).pack(pady=(0,10))
 
-
-    # --- Playlist Loading & Display Logic (unchanged) ---
     def delete_playlist(self, name):
         path = os.path.join(PLAYLISTS_DIR, f"{name}.playlist")
-        try: os.remove(path)
-        except: pass
+        try:
+            os.remove(path)
+        except OSError:
+            pass
         self.show_playlists()
 
-
     def load_playlist(self, name):
-        path = os.path.join(PLAYLISTS_DIR, f"{name}.playlist`)
+        path = os.path.join(PLAYLISTS_DIR, f"{name}.playlist")
         if not os.path.exists(path):
             return
         basenames = [l.strip() for l in open(path) if l.strip()]
@@ -434,10 +404,8 @@ class FOGRPlayer(TkinterDnD.Tk):
         self.title_label.configure(text=name)
         self.display_playlist([os.path.basename(p) for p in fulls])
 
-
     def display_playlist(self, names):
         for w in self.content_frame.winfo_children():
-            # preserve the dropdown and save-entry/button
             if isinstance(w, CTkOptionMenu): continue
             if isinstance(w, ctk.CTkEntry) and w.cget("placeholder_text").startswith("New Playlist"): continue
             if isinstance(w, ctk.CTkButton) and w.cget("text")=="💾 Save Playlist": continue
@@ -446,7 +414,6 @@ class FOGRPlayer(TkinterDnD.Tk):
         for i, b in enumerate(names):
             row = ctk.CTkFrame(self.content_frame, fg_color="#1e1e1e")
             row.pack(fill="x", pady=2, padx=5)
-            # move up/down
             ctk.CTkButton(row, image=self.icon_up, text="", width=24,
                           command=lambda i=i: self.swap_playlist(i, i-1)
             ).pack(side="left")
@@ -454,7 +421,6 @@ class FOGRPlayer(TkinterDnD.Tk):
                           command=lambda i=i: self.swap_playlist(i, i+1)
             ).pack(side="left")
             a, t = extract_metadata(b)
-            # right-click to remove
             btn = ctk.CTkButton(
                 row, text=f"{a} — {t}", font=self.button_font,
                 fg_color="#222", hover_color="#333",
@@ -464,18 +430,13 @@ class FOGRPlayer(TkinterDnD.Tk):
             btn.pack(side="left", fill="x", expand=True)
             btn.bind("<Button-3>", lambda e, x=b: self.remove_from_playlist(x, self.title_label.cget("text")))
 
-
-    # --- Swap within playlist (unchanged) ---
     def swap_playlist(self, i, j):
         if 0 <= i < len(self.song_list) and 0 <= j < len(self.song_list):
             self.song_list[i], self.song_list[j] = self.song_list[j], self.song_list[i]
             self.display_playlist([os.path.basename(p) for p in self.song_list])
 
-
-    # --- Other existing methods (toggle_play, adjust_position, change_volume, prev_song, next_song,
-    #     toggle_theme, save_favorites, toggle_favorite, etc.) remain unchanged ---
-    # ... [keep the rest of your existing methods here] ...
-
+    # --- Other methods (toggle_play, adjust_position, change_volume, prev_song, next_song,
+    #     toggle_theme, save_favorites, toggle_favorite, etc.) remain as in your original code ---
 
 if __name__ == "__main__":
     try:
